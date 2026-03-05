@@ -314,9 +314,12 @@ function initMap() {
     });
 
     // Mobil: haritaya tıklandığında sidebar kapat
-    map.on('click', (e) => {
+    map.on('click', () => {
         if (window.innerWidth <= 768) {
             document.getElementById('sidebar').classList.remove('mobile-open');
+            document.getElementById('sidebar-overlay')?.classList.remove('active');
+            document.getElementById('hamburger-btn')?.classList.remove('open');
+            document.body.style.overflow = '';
         }
     });
 }
@@ -911,10 +914,40 @@ function setupEventListeners() {
         btn.classList.toggle('active', !isHidden);
     });
 
-    // Mobil sidebar toggle
+    // Hamburger butonu — sidebar aç/kapat
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    function openSidebar() {
+        document.getElementById('sidebar').classList.add('mobile-open');
+        sidebarOverlay.classList.add('active');
+        hamburgerBtn.classList.add('open');
+        document.body.style.overflow = 'hidden'; // arkayı kilitle
+    }
+
+    function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('mobile-open');
+        sidebarOverlay.classList.remove('active');
+        hamburgerBtn.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    hamburgerBtn.addEventListener('click', () => {
+        const isOpen = document.getElementById('sidebar').classList.contains('mobile-open');
+        isOpen ? closeSidebar() : openSidebar();
+    });
+
+    // Overlay'e tıklayınca sidebar kapat
+    sidebarOverlay.addEventListener('click', closeSidebar);
+
+    // FAB (sağ alt) → harita merkezine pin ekle modunu aç
     document.getElementById('add-btn-mobile').addEventListener('click', () => {
-        const sidebar = document.getElementById('sidebar');
-        sidebar.classList.toggle('mobile-open');
+        closeSidebar();
+        // Haritanın görünür merkezine pin eklemek için modal aç
+        tempMarkerPos = map.getCenter();
+        editingPinId = null;
+        document.getElementById('modal-title').textContent = 'Yeni Nokta Ekle';
+        openModal();
     });
 
     // Modal dışına tıklayınca kapat

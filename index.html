@@ -35,6 +35,16 @@
 
 <body>
     <div id="app">
+        <!-- Hamburger Butonu (Sadece Mobil) -->
+        <button id="hamburger-btn" class="hamburger-btn" aria-label="Menüyü Aç/Kapat">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+
+        <!-- Sidebar Overlay (Mobil arka plan) -->
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
         <!-- Sidebar / Sidebar Toggle -->
         <aside id="sidebar" class="sidebar">
             <header>
@@ -185,8 +195,8 @@
                 </div>
             </div>
 
-            <button id="add-btn-mobile" class="floating-add-btn">
-                <i data-lucide="plus"></i>
+            <button id="add-btn-mobile" class="floating-add-btn" aria-label="Haritaya Pin Ekle">
+                <i data-lucide="map-pin"></i>
             </button>
         </aside>
 
