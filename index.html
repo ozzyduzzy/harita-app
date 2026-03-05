@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Saha Harita | Emlak Saha Takip</title>
+
+    <!-- SEO & PWA -->
+    <meta name="description" content="Emlakçılar için saha çalışması ve yer imleme uygulaması.">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <link rel="stylesheet" href="src/css/style.css">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <div id="app">
+        <!-- Sidebar / Sidebar Toggle -->
+        <aside id="sidebar" class="sidebar">
+            <header>
+                <div class="logo">
+                    <i data-lucide="map-pin" class="logo-icon"></i>
+                    <h1>Saha<span>Harita</span></h1>
+                </div>
+            </header>
+
+            <div class="sidebar-content">
+                <nav class="filters">
+                    <button class="filter-btn active" data-category="all">
+                        <i data-lucide="layers"></i> Tümü
+                    </button>
+                    <button class="filter-btn" data-category="esnaf">
+                        <span class="dot esnaf"></span> Esnaf
+                    </button>
+                    <button class="filter-btn" data-category="office">
+                        <span class="dot office"></span> Emlak Ofisi
+                    </button>
+                    <button class="filter-btn" data-category="owner">
+                        <span class="dot owner"></span> Ev Sahibi
+                    </button>
+                    <button class="filter-btn" data-category="contractor">
+                        <span class="dot contractor"></span> Müteahhit
+                    </button>
+                </nav>
+
+                <!-- Data Management -->
+                <div class="location-filters" style="border-bottom: 1px solid rgba(0,0,0,0.05);">
+                    <h3
+                        style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 0.75rem; font-weight: 700;">
+                        Veri Yönetimi</h3>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="exportData()" class="filter-btn"
+                            style="flex: 1; justify-content: center; font-size: 0.75rem; padding: 0.5rem;">
+                            <i data-lucide="download" style="width: 14px; height: 14px;"></i> Yedekle
+                        </button>
+                        <button onclick="document.getElementById('import-input').click()" class="filter-btn"
+                            style="flex: 1; justify-content: center; font-size: 0.75rem; padding: 0.5rem;">
+                            <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Veri Ekle
+                        </button>
+                        <input type="file" id="import-input" class="hidden" accept=".json" onchange="importData(event)">
+                    </div>
+                </div>
+
+                <!-- Today's Tasks -->
+                <div id="today-tasks-section" class="filter-section hidden"
+                    style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.1); border-radius: 12px; margin: 10px 1.5rem;">
+                    <h3
+                        style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #ef4444; margin-bottom: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+                        <i data-lucide="alarm-clock" style="width: 14px; height: 14px;"></i> Bugünün Görüşmeleri
+                    </h3>
+                    <div id="today-tasks-container" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- JS handles items -->
+                    </div>
+                </div>
+
+                <!-- Smart Search bar -->
+                <div class="filter-section" style="padding-bottom: 0;">
+                    <div class="search-box">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="smart-search" placeholder="İsim, not veya mahalle ara...">
+                    </div>
+                </div>
+
+                <!-- Advanced Filters Toggle -->
+                <div class="filter-section">
+                    <button class="filter-toggle-btn" id="toggle-filters">
+                        <span>Gelişmiş Filtreler</span>
+                        <i data-lucide="chevron-down" id="filter-chevron"></i>
+                    </button>
+
+                    <div id="advanced-filters-container" class="collapsible-filters hidden">
+                        <div class="location-filters">
+                            <div class="form-group small">
+                                <label>İlçe Filtresi</label>
+                                <select id="filter-district">
+                                    <option value="all">Tüm İlçeler</option>
+                                </select>
+                            </div>
+                            <div class="form-group small">
+                                <label>Mahalle Filtresi</label>
+                                <select id="filter-neighborhood">
+                                    <option value="all">Tüm Mahalleler</option>
+                                </select>
+                            </div>
+                            <div class="form-group small">
+                                <label>Emlak Tipi Filtresi</label>
+                                <select id="filter-property-type">
+                                    <option value="all">Tüm Tipler</option>
+                                    <option value="konut">Konut</option>
+                                    <option value="ticari">Ticari</option>
+                                    <option value="arsa">Arsa</option>
+                                </select>
+                            </div>
+                            <div id="room-filter-container" class="form-group small hidden">
+                                <label>Oda Sayısı (Çoklu Seçim)</label>
+                                <div class="multi-select-rooms" id="filter-rooms">
+                                    <!-- JS with checkboxes -->
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Min Fiyat (TL)</label>
+                                    <input type="number" id="filter-min-price" placeholder="Min">
+                                </div>
+                                <div class="form-group">
+                                    <label>Max Fiyat (TL)</label>
+                                    <input type="number" id="filter-max-price" placeholder="Max">
+                                </div>
+                            </div>
+                            <div class="form-group small">
+                                <label>Min m²</label>
+                                <input type="number" id="filter-min-m2" placeholder="Min m²">
+                            </div>
+                            <div class="form-group small">
+                                <label>Min Kat</label>
+                                <input type="number" id="filter-min-floor" placeholder="Min Kat">
+                            </div>
+                            <div id="age-filter-container" class="form-group small">
+                                <label>Bina Yaşı (Çoklu Seçim)</label>
+                                <div class="multi-select-rooms" id="filter-ages">
+                                    <!-- JS with chips -->
+                                </div>
+                            </div>
+                            <div id="usage-filter-container" class="form-group small">
+                                <label>Kullanım Durumu (Çoklu Seçim)</label>
+                                <div class="multi-select-rooms" id="filter-usage">
+                                    <!-- JS with chips -->
+                                </div>
+                            </div>
+                            <div id="title-deed-filter-container" class="form-group small">
+                                <label>Tapu Durumu (Çoklu Seçim)</label>
+                                <div class="multi-select-rooms" id="filter-title-deed">
+                                    <!-- JS with chips -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="saved-list">
+                    <h3>Kayıtlı Noktalar</h3>
+                    <div id="pins-container">
+                        <p class="empty-msg">Henüz nokta eklenmedi.</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="add-btn-mobile" class="floating-add-btn">
+                <i data-lucide="plus"></i>
+            </button>
+        </aside>
+
+        <main id="map-container">
+            <div id="map"></div>
+
+            <!-- Context Menu / Modal for adding -->
+            <div id="add-modal" class="modal">
+                <div class="modal-content">
+                    <h3 id="modal-title">Yeni Nokta Ekle</h3>
+                    <form id="add-form">
+                        <div class="form-group">
+                            <label>Kategori</label>
+                            <select id="pin-category" required>
+                                <option value="owner">Ev Sahibi</option>
+                                <option value="office">Emlak Ofisi</option>
+                                <option value="esnaf">Esnaf</option>
+                                <option value="contractor">Müteahhit</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label id="label-title">Başlık / İsim</label>
+                                <input type="text" id="pin-title" placeholder="Örn: Mert Emlak" required>
+                            </div>
+                            <div id="field-company" class="form-group">
+                                <label>Firma Adı</label>
+                                <input type="text" id="pin-company" placeholder="Firma Adı">
+                            </div>
+                        </div>
+
+                        <div id="business-fields">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Sektör</label>
+                                    <input type="text" id="pin-sector" placeholder="Örn: Tekstil">
+                                </div>
+                                <div class="form-group">
+                                    <label>Telefon</label>
+                                    <input type="tel" id="pin-phone" placeholder="05xx xxx xx xx">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>İlçe</label>
+                                <select id="pin-district" required>
+                                    <option value="">Seçiniz</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Mahalle</label>
+                                <select id="pin-neighborhood" required>
+                                    <option value="">Önce İlçe Seçiniz</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="property-fields">
+                            <div class="form-group">
+                                <label>Fiyat (TL)</label>
+                                <input type="number" id="pin-price" placeholder="Fiyat">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Net m²</label>
+                                    <input type="number" id="pin-m2" placeholder="m²">
+                                </div>
+                                <div class="form-group">
+                                    <label>Bulunduğu Kat</label>
+                                    <input type="number" id="pin-floor" placeholder="Örn: 3">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Emlak Tipi</label>
+                                <select id="pin-property-type">
+                                    <option value="konut">Konut</option>
+                                    <option value="ticari">Ticari</option>
+                                    <option value="arsa">Arsa</option>
+                                </select>
+                            </div>
+                            <div id="pin-rooms-container" class="form-group">
+                                <label>Oda Sayısı</label>
+                                <select id="pin-rooms">
+                                    <option value="">Seçiniz</option>
+                                    <option value="1+1">1+1</option>
+                                    <option value="2+1">2+1</option>
+                                    <option value="3+1">3+1</option>
+                                    <option value="3+2">3+2</option>
+                                    <option value="4+1">4+1</option>
+                                    <option value="4+2">4+2</option>
+                                    <option value="5+1">5+1</option>
+                                    <option value="5+2">5+2</option>
+                                    <option value="6+1">6+1</option>
+                                    <option value="6+2">6+2</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Bina Yaşı</label>
+                                <select id="pin-age">
+                                    <option value="">Seçiniz</option>
+                                    <option value="0">0</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6-10">6-10</option>
+                                    <option value="11-15">11-15</option>
+                                    <option value="16-20">16-20</option>
+                                    <option value="20-30">20-30</option>
+                                    <option value="31 ve üzeri">31 ve üzeri</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Kullanım Durumu</label>
+                                <select id="pin-usage">
+                                    <option value="">Seçiniz</option>
+                                    <option value="Boş">Boş</option>
+                                    <option value="Mülk Sahibi">Mülk Sahibi</option>
+                                    <option value="Kiracılı">Kiracılı</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Tapu Durumu</label>
+                                <select id="pin-title-deed">
+                                    <option value="">Seçiniz</option>
+                                    <option value="Kat Mülkiyetli">Kat Mülkiyetli</option>
+                                    <option value="Kat İrtifaklı">Kat İrtifaklı</option>
+                                    <option value="Arsa Tapulu">Arsa Tapulu</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Notlar</label>
+                            <textarea id="pin-notes" placeholder="İletişim, potansiyel vb."></textarea>
+                        </div>
+
+                        <div
+                            style="background: rgba(239, 68, 68, 0.05); padding: 1rem; border-radius: 12px; border: 1px dashed rgba(239, 68, 68, 0.2); margin-top: 5px;">
+                            <label
+                                style="color: #ef4444; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 5px;">
+                                <i data-lucide="calendar"></i> Görüşme Planlayıcı
+                            </label>
+                            <div class="form-row" style="margin-top: 8px;">
+                                <div class="form-group">
+                                    <input type="date" id="pin-reminder-date">
+                                </div>
+                                <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="pin-reminder-done" style="width: 18px; height: 18px;">
+                                    <label for="pin-reminder-done" style="margin-bottom: 0; font-size: 0.85rem;">Görüşme
+                                        Yapıldı</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-actions">
+                            <button type="button" class="btn-cancel" onclick="closeModal()">İptal</button>
+                            <button type="submit" class="btn-save">Kaydet</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+    </div>
+
+    <div id="current-location-status" class="location-status hidden">
+        <i data-lucide="crosshair"></i>
+        Konumunuz aranıyor...
+    </div>
+
+    <div class="interaction-hint">
+        Haritaya sağ tıklayarak (veya uzun basarak) yeni nokta ekleyin.
+    </div>
+    </main>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="src/js/app.js"></script>
+    <script>
+        // Init Lucide after DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+        });
+    </script>
+</body>
+
+</html>

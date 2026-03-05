@@ -1,0 +1,22 @@
+{
+  "name": "Saha Harita",
+  "short_name": "SahaHarita",
+  "description": "Emlakçılar için saha çalışması ve yer imleme uygulaması.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
