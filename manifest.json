@@ -2,21 +2,29 @@
   "name": "Saha Harita",
   "short_name": "SahaHarita",
   "description": "Emlakçılar için saha çalışması ve yer imleme uygulaması.",
-  "start_url": "./index.html",
+  "start_url": "/harita-app/",
+  "scope": "/harita-app/",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#2563eb",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "lang": "tr",
+  "categories": [
+    "business",
+    "productivity"
+  ],
   "icons": [
     {
-      "src": "assets/icon-192.png",
+      "src": "/harita-app/assets/icon-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
-      "src": "assets/icon-512.png",
+      "src": "/harita-app/assets/icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ]
 }
